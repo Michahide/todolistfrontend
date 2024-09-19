@@ -1,56 +1,72 @@
 'use client'
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
-
-const Modalcreate = ({onTaskCreated} : {onTaskCreated : () => Promise<void>}) => {
+const Modalupdate = ({ taskId, onTaskUpdated }: { taskId: number, onTaskUpdated: () => Promise<void> }) => {
     const [show, setShow] = useState(false);
     const [createError, setCreateError] = useState(false);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
 
-    const handleSubmit = async () => {
-        const response = await fetch('http://localhost:8000/api/tasks', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ title, description }),
-        });
+    useEffect(() => {
+        const fetchTaskDetails = async () => {
+            try {
+                const response = await fetch(`http://localhost:8000/api/tasks/${taskId}`);
+                if (!response.ok) {
+                    throw new Error('Failed to fetch task details');
+                }
+                const data = await response.json();
+                const task = data.data.resource;
+                setTitle(task.title);
+                setDescription(task.description);
+            } catch (error) {
+                console.error('Error fetching task details:', error);
+            }
+        };
 
-        if (response.ok) {
-            // Handle successful response
-            console.log('Task created successfully');
+        fetchTaskDetails();
+    }, [taskId]);
+
+    const handleSubmit = async () => {
+        try {
+            const response = await fetch(`http://localhost:8000/api/tasks/${taskId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ title, description }),
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to update task');
+            }
+
             setShow(false);
             setCreateError(false);
-            await onTaskCreated();
-            setTitle('');
-            setDescription('');
-        } else {
-            // Handle error response
-            console.error('Failed to create task');
+            await onTaskUpdated();
+        } catch (error) {
+            console.error('Error updating task:', error);
             setCreateError(true);
         }
     };
 
     return (
-        <div className="place-self-center mt-4 md:mt-auto md:place-self-auto">
+        <>
             <button
-                className="rounded-lg border border-solid border-transparent transition-colors flex flex-row items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-blue-500 dark:hover:text-white text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 self-end"
-                title="Create New Task"
+                className="rounded-lg border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-yellow-300 text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto"
+                title="Update Task"
                 onClick={() => setShow(prev => !prev)}
             >
                 <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="size-6">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m16.862 4.487 1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10" />
                 </svg>
-                <span>Create</span>
             </button>
             {show ? (
                 <div className="flex justify-center items-center overflow-x-hidden overflow-y-auto fixed inset-0 z-50 outline-none focus:outline-none bg-gray-800 bg-opacity-75" onClick={() => setShow(false)}>
                     <div className="relative md:w-1/2 my-6 mx-auto max-w-3xl" onClick={(e) => e.stopPropagation()}>
                         <div className="border-0 rounded-lg shadow-lg relative flex flex-col w-full bg-black outline focus:outline-none">
                             <div className="flex items-center justify-between p-5 rounded-t ">
-                                <h3 className="text-2xl font=semibold">Create new task</h3>
+                                <h3 className="text-2xl font=semibold">Update task</h3>
                                 <button
                                     className="bg-transparent border-0 text-black float-right"
                                     title='close'
@@ -112,20 +128,16 @@ const Modalcreate = ({onTaskCreated} : {onTaskCreated : () => Promise<void>}) =>
                                     className="text-white bg-blue-500 active:bg-blue-700 font-bold uppercase text-sm px-6 py-3 rounded shadow hover:shadow-lg outline-none focus:outline-none mr-1 mb-1"
                                     type="button"
                                     onClick={handleSubmit}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter') {
-                                            handleSubmit();
-                                        }
-                                    }}
+
                                 >
-                                    Submit
+                                    Update
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>) : null}
-        </div>
+        </>
     );
 };
 
-export default Modalcreate;
+export default Modalupdate;
